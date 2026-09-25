@@ -583,6 +583,13 @@ class SecretScanTests(unittest.TestCase):
             "npm access token": fake("npm_", "A1b2C3d4E5f6G7h8I9j0K1l2M3n4O5p6Q7r8"),
             "Stripe secret key": fake("sk", "_live_", "A1b2C3d4E5f6G7h8I9j0K1"),
             "Supabase secret key": fake("sb", "_secret_", "A1b2C3d4E5f6G7h8I9j0K1"),
+            "Perplexity API key": fake("pplx", "-", "Q7zT4mWx9Rb2Kd5Nf8Lp3Hs6Vc1Yj0GuE4tA9BnC7Xq2Zw5M"),
+            "Replicate API token": fake("r8", "_", "A1b2C3d4E5f6G7h8I9j0K1l2M3n4O5p6Q7r8S"),
+            "Discord webhook URL": fake(
+                "https://discord.com/api/webhooks/",
+                "908172635490817263/",
+                "A1b2C3d4E5f6G7h8I9j0K1_lmn-OPQR",
+            ),
             "Slack webhook URL": fake(
                 "https://hooks.slack.com/services/",
                 "TXZ9MQKPLR/",
@@ -624,6 +631,7 @@ class SecretScanTests(unittest.TestCase):
             "postgresql://postgres:..@db.<ref>.supabase.co:5432/postgres",
             "postgres://postgres:s3cr3t-value@db.{project-ref}.supabase.co/postgres",
             "psql postgres://postgres:my_password@proxy.wasm.dev:5432",
+            "https://discord.com/api/webhooks/YOUR_ID/YOUR_TOKEN",
             "https://hooks.slack.com/services/XXXX/XXXX/XXXX",
         ]
 
