@@ -796,6 +796,82 @@ class ConfigCheckTests(unittest.TestCase):
         self.assertEqual(len(missing), 1)
         self.assertEqual(present, [])
 
+    def test_public_prefixed_secret_in_env_file(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            repo_path = make_repo(
+                temp_dir,
+                {
+                    ".env": (
+                        "NEXT_PUBLIC_URL=https://example.com\n"
+                        "NEXT_PUBLIC_OPENAI_API_KEY=sk-test\n"
+                        "VITE_STRIPE_SECRET_KEY=sk_live_x\n"
+                        "EXPO_PUBLIC_AUTH_TOKEN=abc\n"
+                    )
+                },
+            )
+            result = findings_for(repo_path, "public-env-secret")
+
+        found = {(f["detail"], f["severity"]) for f in result}
+        self.assertEqual(
+            found,
+            {
+                ("NEXT_PUBLIC_OPENAI_API_KEY", "warning"),
+                ("VITE_STRIPE_SECRET_KEY", "critical"),
+                ("EXPO_PUBLIC_AUTH_TOKEN", "warning"),
+            },
+        )
+
+    def test_public_prefixed_secret_in_code(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            repo_path = make_repo(
+                temp_dir,
+                {
+                    "app.ts": (
+                        "const key = process.env.NEXT_PUBLIC_ANTHROPIC_API_KEY;\n"
+                        "const role = import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY;\n"
+                        "const ok = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;\n"
+                        "const url = process.env.NEXT_PUBLIC_SUPABASE_URL;\n"
+                    )
+                },
+            )
+            result = findings_for(repo_path, "public-env-secret")
+
+        found = {(f["detail"], f["severity"]) for f in result}
+        self.assertEqual(
+            found,
+            {
+                ("NEXT_PUBLIC_ANTHROPIC_API_KEY", "warning"),
+                ("VITE_SUPABASE_SERVICE_ROLE_KEY", "critical"),
+            },
+        )
+
+    def test_public_by_design_names_are_not_flagged(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            repo_path = make_repo(
+                temp_dir,
+                {
+                    ".env": (
+                        "NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJ\n"
+                        "NEXT_PUBLIC_SUPABASE_URL=https://x.supabase.co\n"
+                        "NEXT_PUBLIC_FIREBASE_API_KEY=AIza\n"
+                        "NEXT_PUBLIC_APP_NAME=Demo\n"
+                    )
+                },
+            )
+            self.assertEqual(findings_for(repo_path, "public-env-secret"), [])
+
+    def test_classify_public_prefixed_secret_helpers(self):
+        self.assertEqual(
+            repodx.classify_public_prefixed_secret("NEXT_PUBLIC_SUPABASE_SERVICE_ROLE_KEY"),
+            "critical",
+        )
+        self.assertEqual(
+            repodx.classify_public_prefixed_secret("VITE_DATABASE_PASSWORD"),
+            "warning",
+        )
+        self.assertIsNone(repodx.classify_public_prefixed_secret("OPENAI_API_KEY"))
+        self.assertIsNone(repodx.classify_public_prefixed_secret("NEXT_PUBLIC_SITE_URL"))
+
     def test_supabase_rls_reports_only_unprotected_public_tables(self):
         sql = (
             "create table public.profiles (id uuid);\n"

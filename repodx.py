@@ -390,6 +390,19 @@ FAKE_VALUE_MARKERS = [
 PASSWORD_PLACEHOLDER_MARKERS = ["$", "%", "..", "password"]
 TEMPLATE_HOST_MARKERS = ["{", "<", "[", "$"]
 PUBLIC_ENV_PREFIXES = ("NEXT_PUBLIC_", "VITE_", "REACT_APP_", "PUBLIC_", "EXPO_PUBLIC_", "NUXT_PUBLIC_", "GATSBY_")
+# Variable names that combine a public prefix with these markers leak secrets to the browser.
+PUBLIC_PREFIX_CRITICAL_MARKERS = ("SERVICE_ROLE", "SECRET", "PRIVATE")
+PUBLIC_PREFIX_WARNING_MARKERS = ("PASSWORD", "TOKEN", "OPENAI_API_KEY", "ANTHROPIC_API_KEY", "STRIPE_SECRET")
+# Names that are public by design even when they look secret-ish.
+PUBLIC_BY_DESIGN_ENV_NAMES = frozenset({
+    "NEXT_PUBLIC_SUPABASE_ANON_KEY",
+    "NEXT_PUBLIC_SUPABASE_URL",
+    "NEXT_PUBLIC_FIREBASE_API_KEY",
+    "STRIPE_PUBLISHABLE_KEY",
+})
+PUBLIC_ENV_ACCESS_PATTERN = re.compile(
+    r"(?:process\.env\.|import\.meta\.env\.)([A-Za-z_][A-Za-z0-9_]*)"
+)
 TEST_DIRECTORY_NAMES = [
     "test", "tests", "__tests__", "spec", "specs", "fixtures", "__fixtures__", "testdata", "__mocks__", "mocks",
     "example", "examples", "demo", "demos", "samples",
@@ -456,6 +469,11 @@ FIXES = {
     "env-example": (
         "Your code reads environment variables, but there is no .env.example. Add one listing every "
         "variable name with an empty or fake value, so others (and AI agents) know what to set."
+    ),
+    "public-env-secret": (
+        "Anything with a public prefix (NEXT_PUBLIC_, VITE_, EXPO_PUBLIC_, …) is shipped to the browser. "
+        "Rename the variable without that prefix, keep the secret on the server, and call the provider "
+        "from a server route or edge function instead."
     ),
     "agent-file-size": (
         "Keep AGENTS.md / CLAUDE.md short (under ~300 lines) and concrete: setup, test command, conventions. "
@@ -652,6 +670,71 @@ def has_only_public_variables(path):
     text = read_text_file(path) or ""
     names = re.findall(r"^\s*(?:export\s+)?([A-Za-z_][A-Za-z0-9_]*)\s*=", text, flags=re.MULTILINE)
     return bool(names) and all(name.startswith(PUBLIC_ENV_PREFIXES) for name in names)
+
+
+def _marker_in_name(name, marker):
+    return re.search(rf"(^|_){re.escape(marker)}(_|$)", name) is not None
+
+
+def classify_public_prefixed_secret(name):
+    """Return severity for a public-prefixed secret name, or None if it is fine."""
+    if name in PUBLIC_BY_DESIGN_ENV_NAMES:
+        return None
+    if not name.startswith(PUBLIC_ENV_PREFIXES):
+        return None
+    if any(_marker_in_name(name, marker) for marker in PUBLIC_PREFIX_CRITICAL_MARKERS):
+        return "critical"
+    if any(_marker_in_name(name, marker) for marker in PUBLIC_PREFIX_WARNING_MARKERS):
+        return "warning"
+    return None
+
+
+def check_public_env_secrets(repo_path, files):
+    """Flag public-prefixed env names that look like secrets (issue #18)."""
+    findings = []
+    seen = set()
+
+    for relative_text in files:
+        name = relative_text.rsplit("/", 1)[-1].lower()
+        text = read_text_file(repo_path / relative_text)
+        if text is None:
+            continue
+
+        candidates = []
+        if re.fullmatch(r"\.env(\..+)?", name) or is_env_example_name(name):
+            for line_number, line in enumerate(text.splitlines(), start=1):
+                if INLINE_IGNORE_MARKER in line:
+                    continue
+                match = re.match(r"\s*(?:export\s+)?([A-Za-z_][A-Za-z0-9_]*)\s*=", line)
+                if match:
+                    candidates.append((line_number, match.group(1)))
+
+        for line_number, line in enumerate(text.splitlines(), start=1):
+            if INLINE_IGNORE_MARKER in line:
+                continue
+            for match in PUBLIC_ENV_ACCESS_PATTERN.finditer(line):
+                candidates.append((line_number, match.group(1)))
+
+        for line_number, var_name in candidates:
+            severity = classify_public_prefixed_secret(var_name)
+            if severity is None:
+                continue
+            key = (relative_text, line_number, var_name)
+            if key in seen:
+                continue
+            seen.add(key)
+            findings.append(
+                make_finding(
+                    "public-env-secret",
+                    severity,
+                    f"Secret exposed through public env prefix: {var_name}",
+                    relative_text,
+                    line_number,
+                    var_name,
+                )
+            )
+
+    return findings
 
 
 def check_env_files(repo_path, files):
@@ -866,6 +949,7 @@ def build_report(repo_path):
     findings = []
     findings += check_file_contents(repo_path, files)
     findings += check_env_files(repo_path, files)
+    findings += check_public_env_secrets(repo_path, files)
     findings += check_supabase_rls(repo_path, files)
     findings += check_firebase_rules(repo_path, files)
     findings += check_large_files(repo_path, files)
