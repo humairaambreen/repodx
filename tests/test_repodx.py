@@ -585,6 +585,20 @@ class SecretScanTests(unittest.TestCase):
 
                 self.assertEqual([(hit[0], hit[1], hit[2]) for hit in hits], [("secret", "critical", name)])
 
+    def test_detects_slack_webhook_url(self):
+        url = fake("https://hooks.slack.com/services/", "T012AB3CDE", "/", "B012EF4GHI", "/", "a1B2c3D4e5F6g7H8i9J0k1")
+        hits = repodx.scan_line_for_secrets(f"SLACK_WEBHOOK={url}")
+
+        self.assertEqual(
+            [(hit[0], hit[1], hit[2]) for hit in hits],
+            [("secret", "critical", "Slack webhook URL")],
+        )
+
+    def test_ignores_placeholder_slack_webhook_url(self):
+        line = fake("webhook: ", "https://hooks.slack.com/services/XXXX/XXXX/XXXX")
+
+        self.assertEqual(repodx.scan_line_for_secrets(line), [])
+
     def test_ignores_documentation_placeholders(self):
         lines = [
             fake("aws_key = '", "AKIA", "IOSFODNN7EXAMPLE", "'"),
