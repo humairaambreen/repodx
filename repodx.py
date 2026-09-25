@@ -369,6 +369,7 @@ SECRET_PATTERNS = [
     ("Slack token", r"\bxox[abposr]-[A-Za-z0-9\-]{10,}"),
     ("Hugging Face token", r"\bhf_[A-Za-z0-9]{34,}\b"),
     ("Groq API key", r"\bgsk_[A-Za-z0-9]{48,}\b"),
+    ("Perplexity API key", r"\bpplx-[A-Za-z0-9]{40,}\b"),
     ("SendGrid API key", r"\bSG\.[A-Za-z0-9_\-]{22}\.[A-Za-z0-9_\-]{43}\b"),
     ("Telegram bot token", r"\b\d{8,10}:AA[A-Za-z0-9_\-]{33}\b"),
 ]
@@ -400,7 +401,7 @@ COMPILED_SECRET_PATTERNS = [(name, re.compile(pattern)) for name, pattern in SEC
 # Every pattern above contains one of these strings, so lines without them are skipped quickly.
 CANDIDATE_LITERALS = [
     "sk-", "AKIA", "ASIA", "ghp_", "gho_", "ghu_", "ghs_", "ghr_", "github_pat_", "_live_", "sb_secret_",
-    "xox", "hf_", "gsk_", "SG.", ":AA", "AIza", "eyJ", "://",
+    "xox", "hf_", "gsk_", "pplx-", "SG.", ":AA", "AIza", "eyJ", "://",
 ]
 
 
