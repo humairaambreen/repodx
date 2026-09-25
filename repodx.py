@@ -367,6 +367,7 @@ SECRET_PATTERNS = [
     ("Stripe secret key", r"\b(?:sk|rk)_live_[A-Za-z0-9]{20,}\b"),
     ("Supabase secret key", r"\bsb_secret_[A-Za-z0-9_\-]{20,}"),
     ("Slack token", r"\bxox[abposr]-[A-Za-z0-9\-]{10,}"),
+    ("Slack webhook URL", r"https://hooks\.slack\.com/services/T[A-Z0-9]+/B[A-Z0-9]+/[A-Za-z0-9]+"),
     ("Hugging Face token", r"\bhf_[A-Za-z0-9]{34,}\b"),
     ("Groq API key", r"\bgsk_[A-Za-z0-9]{48,}\b"),
     ("SendGrid API key", r"\bSG\.[A-Za-z0-9_\-]{22}\.[A-Za-z0-9_\-]{43}\b"),
