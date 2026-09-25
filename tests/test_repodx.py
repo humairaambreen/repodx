@@ -1,4 +1,6 @@
 import base64
+import ctypes
+from ctypes import wintypes
 import io
 import json
 import os
@@ -874,6 +876,90 @@ class ConfigCheckTests(unittest.TestCase):
             result = findings_for(repo_path, "agent-file-size")
 
         self.assertEqual([(f["path"], f["detail"]) for f in result], [("CLAUDE.md", "301 lines")])
+
+
+class ColorTests(unittest.TestCase):
+    def setUp(self):
+        self.stream = mock.Mock()
+        self.stream.isatty.return_value = True
+        self.stream.fileno.return_value = 1
+        self.handle = 0x100000001
+        self.mode = 0x0012
+        self.kernel32 = mock.Mock()
+        self.kernel32.GetConsoleMode.side_effect = self.get_console_mode
+        self.kernel32.SetConsoleMode.side_effect = self.set_console_mode
+        self.msvcrt = mock.Mock()
+        self.msvcrt.get_osfhandle.return_value = self.handle
+        self.load_library = mock.Mock(return_value=self.kernel32)
+
+        for patcher in [
+            mock.patch.dict(os.environ, {}, clear=True),
+            mock.patch.object(repodx.os, "name", "nt"),
+            mock.patch.dict("sys.modules", {"msvcrt": self.msvcrt}),
+            mock.patch("ctypes.WinDLL", new=self.load_library, create=True),
+        ]:
+            patcher.start()
+            self.addCleanup(patcher.stop)
+
+    def get_console_mode(self, handle, mode):
+        ctypes.cast(mode, ctypes.POINTER(wintypes.DWORD))[0] = self.mode
+        return 1
+
+    def set_console_mode(self, handle, mode):
+        self.mode = mode
+        return 1
+
+    def test_windows_tty_enables_vt_and_preserves_existing_flags(self):
+        self.assertTrue(repodx.use_color(self.stream))
+        # Keep wrapping/LVB flags and enable processed output plus VT processing.
+        self.assertEqual(self.mode, 0x0017)
+        self.kernel32.SetConsoleMode.assert_called_once_with(self.handle, 0x0017)
+
+    def test_windows_tty_uses_the_supplied_stream_handle(self):
+        self.assertTrue(repodx.use_color(self.stream))
+        self.msvcrt.get_osfhandle.assert_called_once_with(1)
+        self.assertEqual(self.kernel32.GetConsoleMode.call_args[0][0], self.handle)
+        self.assertEqual(self.kernel32.GetConsoleMode.argtypes[0], wintypes.HANDLE)
+        self.assertEqual(self.kernel32.SetConsoleMode.argtypes[0], wintypes.HANDLE)
+
+    def test_non_windows_tty_does_not_load_windows_apis(self):
+        with mock.patch.object(repodx.os, "name", "posix"):
+            self.assertTrue(repodx.use_color(self.stream))
+        self.load_library.assert_not_called()
+
+    def test_redirected_output_does_not_enable_color(self):
+        self.stream.isatty.return_value = False
+        self.assertFalse(repodx.use_color(self.stream))
+        self.load_library.assert_not_called()
+
+    def test_no_color_disables_color_even_when_empty(self):
+        for value in ["", "1"]:
+            with self.subTest(value=value), mock.patch.dict(os.environ, {"NO_COLOR": value}):
+                self.assertFalse(repodx.use_color(self.stream))
+        self.load_library.assert_not_called()
+
+    def test_failed_console_mode_read_disables_color(self):
+        self.kernel32.GetConsoleMode.side_effect = None
+        self.kernel32.GetConsoleMode.return_value = 0
+        self.assertFalse(repodx.use_color(self.stream))
+        self.kernel32.SetConsoleMode.assert_not_called()
+
+    def test_failed_console_mode_write_disables_color(self):
+        self.kernel32.SetConsoleMode.side_effect = None
+        self.kernel32.SetConsoleMode.return_value = 0
+        self.assertFalse(repodx.use_color(self.stream))
+
+    def test_unavailable_file_descriptor_disables_color(self):
+        for error in [AttributeError("no fileno"), io.UnsupportedOperation("fileno"), ValueError("closed")]:
+            with self.subTest(error=error):
+                self.stream.fileno.side_effect = error
+                self.assertFalse(repodx.use_color(self.stream))
+        self.kernel32.GetConsoleMode.assert_not_called()
+
+    def test_invalid_os_handle_disables_color(self):
+        self.msvcrt.get_osfhandle.side_effect = OSError("invalid descriptor")
+        self.assertFalse(repodx.use_color(self.stream))
+        self.kernel32.GetConsoleMode.assert_not_called()
 
 
 class ReportTests(unittest.TestCase):
