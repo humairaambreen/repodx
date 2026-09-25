@@ -39,9 +39,9 @@ curl -sSL https://github.com/omerbek/repodx/releases/latest/download/repodx.py |
 Install the tagged GitHub version directly:
 
 ```bash
-pipx install git+https://github.com/omerbek/repodx@v0.4.0
+pipx install git+https://github.com/omerbek/repodx@v0.5.0
 # or
-uv tool install git+https://github.com/omerbek/repodx@v0.4.0
+uv tool install git+https://github.com/omerbek/repodx@v0.5.0
 ```
 
 On Windows, you can also download `repodx.py` and run `python repodx.py .`
@@ -99,7 +99,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: omerbek/repodx@v0.4.0
+      - uses: omerbek/repodx@v0.5.0
         with:
           fail-on: warning # critical, warning, info or never
 ```
@@ -113,7 +113,7 @@ problems.
 # .pre-commit-config.yaml
 repos:
   - repo: https://github.com/omerbek/repodx
-    rev: v0.4.0
+    rev: v0.5.0
     hooks:
       - id: repodx
 ```
@@ -130,7 +130,9 @@ Run `repodx --badge` and paste the output into your README:
 
 | Severity | Check |
 | --- | --- |
-| critical | API keys and tokens: OpenAI, Anthropic, AWS, GitHub, Stripe, Supabase secret keys, Slack, Hugging Face, Groq, SendGrid, Telegram bots, private keys |
+| critical | API keys and tokens: OpenAI, Anthropic, OpenRouter, Perplexity, Replicate, Groq, Hugging Face, AWS, GitHub, GitLab, npm, PyPI, Stripe, Supabase secret keys, Shopify, DigitalOcean, Slack, SendGrid, Telegram bots, private keys |
+| critical | Slack and Discord webhook URLs |
+| critical / warning | Secret-looking variable names behind public prefixes that ship to the browser (`NEXT_PUBLIC_OPENAI_API_KEY`, `VITE_STRIPE_SECRET_KEY`, `EXPO_PUBLIC_..._SERVICE_ROLE_KEY`), even with an empty value |
 | critical | Supabase `service_role` JWTs (the JWT is decoded to check its role; public `anon` keys are not reported) |
 | critical | Database URLs with a real password (`postgres://`, `mysql://`, `mongodb+srv://`, `redis://` ...), except local hosts and placeholders |
 | critical | `.env` and `.env.local` files that are not ignored (other variants such as `.env.production`, and files with only `NEXT_PUBLIC_`/`VITE_` variables, are warnings) |

@@ -13,7 +13,7 @@ import subprocess
 import sys
 
 
-__version__ = "0.4.0"
+__version__ = "0.5.0"
 
 COMMON_GITIGNORE_ENTRIES = ["__pycache__/", ".env", "node_modules/"]
 VIRTUAL_ENVIRONMENT_DIRECTORY_NAMES = [".venv", "venv", "env"]
