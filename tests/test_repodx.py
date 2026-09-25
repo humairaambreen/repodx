@@ -584,6 +584,9 @@ class SecretScanTests(unittest.TestCase):
             "npm access token": fake("npm_", "A1b2C3d4E5f6G7h8I9j0K1l2M3n4O5p6Q7r8"),
             "Shopify token": fake("shpat", "_", "9f4e6a2b7c8d0a1b2c3d4e5f6a7b8c9d"),
             "DigitalOcean token": fake("dop_v1_", "f1e2d3c4b5a69788796a5b4c3d2e1f0af9e8d7c6b5a49382716f0e1d2c3ba4b7"),
+            "PyPI API token": fake(
+                "pypi-", "AgEIcHlwaS5vcmc", "q7ZT4mWx9Rb2Kd5Nf8Lp3Hs6Vc1Yj0GuE4tA_BnC7Xq2Zw5Mu6"
+            ),
             "Stripe secret key": fake("sk", "_live_", "A1b2C3d4E5f6G7h8I9j0K1"),
             "Supabase secret key": fake("sb", "_secret_", "A1b2C3d4E5f6G7h8I9j0K1"),
             "Perplexity API key": fake("pplx", "-", "Q7zT4mWx9Rb2Kd5Nf8Lp3Hs6Vc1Yj0GuE4tA9BnC7Xq2Zw5M"),
