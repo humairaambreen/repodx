@@ -950,8 +950,36 @@ def finding_location(finding):
     return location
 
 
+def enable_windows_color(stream):
+    """Enable ANSI processing on this stream's console, or fall back to plain text."""
+    import ctypes
+    from ctypes import wintypes
+    import msvcrt
+
+    try:
+        handle = msvcrt.get_osfhandle(stream.fileno())
+        kernel32 = ctypes.WinDLL("kernel32")
+        # Explicit HANDLE types avoid truncating handles on 64-bit Windows.
+        kernel32.GetConsoleMode.argtypes = [wintypes.HANDLE, ctypes.POINTER(wintypes.DWORD)]
+        kernel32.GetConsoleMode.restype = wintypes.BOOL
+        kernel32.SetConsoleMode.argtypes = [wintypes.HANDLE, wintypes.DWORD]
+        kernel32.SetConsoleMode.restype = wintypes.BOOL
+        mode = wintypes.DWORD()
+
+        if not kernel32.GetConsoleMode(handle, ctypes.byref(mode)):
+            return False
+
+        # Preserve existing flags; VT processing (0x0004) also needs processed output (0x0001).
+        return bool(kernel32.SetConsoleMode(handle, mode.value | 0x0001 | 0x0004))
+    except (AttributeError, OSError, ValueError):
+        return False
+
+
 def use_color(stream):
-    return stream.isatty() and "NO_COLOR" not in os.environ  # repodx:ignore
+    if not stream.isatty() or "NO_COLOR" in os.environ:  # repodx:ignore
+        return False
+
+    return os.name != "nt" or enable_windows_color(stream)
 
 
 def paint(text, color_code, enabled):
