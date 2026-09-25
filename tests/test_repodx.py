@@ -575,6 +575,7 @@ class SecretScanTests(unittest.TestCase):
             "Anthropic API key": fake("sk-", "ant-", "api03-", "A1b2C3d4E5f6G7h8I9j0"),
             "AWS access key": fake("AKIA", "Q7ZT4MWX9RB2KD5N"),
             "GitHub token": fake("ghp", "_", "q7ZT4mWx9Rb2Kd5Nf8Lp3Hs6Vc1Yj0GuE4tA"),
+            "npm access token": fake("npm_", "A1b2C3d4E5f6G7h8I9j0K1l2M3n4O5p6Q7r8"),
             "Stripe secret key": fake("sk", "_live_", "A1b2C3d4E5f6G7h8I9j0K1"),
             "Supabase secret key": fake("sb", "_secret_", "A1b2C3d4E5f6G7h8I9j0K1"),
         }
