@@ -582,6 +582,8 @@ class SecretScanTests(unittest.TestCase):
             "GitHub token": fake("ghp", "_", "q7ZT4mWx9Rb2Kd5Nf8Lp3Hs6Vc1Yj0GuE4tA"),
             "GitLab token": fake("glpat", "-", "Q7zT4mWx9Rb2Kd5Nf8Lp"),
             "npm access token": fake("npm_", "A1b2C3d4E5f6G7h8I9j0K1l2M3n4O5p6Q7r8"),
+            "Shopify token": fake("shpat", "_", "9f4e6a2b7c8d0a1b2c3d4e5f6a7b8c9d"),
+            "DigitalOcean token": fake("dop_v1_", "f1e2d3c4b5a69788796a5b4c3d2e1f0af9e8d7c6b5a49382716f0e1d2c3ba4b7"),
             "Stripe secret key": fake("sk", "_live_", "A1b2C3d4E5f6G7h8I9j0K1"),
             "Supabase secret key": fake("sb", "_secret_", "A1b2C3d4E5f6G7h8I9j0K1"),
             "Perplexity API key": fake("pplx", "-", "Q7zT4mWx9Rb2Kd5Nf8Lp3Hs6Vc1Yj0GuE4tA9BnC7Xq2Zw5M"),
@@ -604,6 +606,13 @@ class SecretScanTests(unittest.TestCase):
                 hits = repodx.scan_line_for_secrets(f'const key = "{key}";')
 
                 self.assertEqual([(hit[0], hit[1], hit[2]) for hit in hits], [("secret", "critical", name)])
+
+    def test_detects_digitalocean_oauth_token(self):
+        key = fake("doo_v1_", "f1e2d3c4b5a69788796a5b4c3d2e1f0af9e8d7c6b5a49382716f0e1d2c3ba4b7")
+
+        hits = repodx.scan_line_for_secrets(f'DIGITALOCEAN_TOKEN="{key}"')
+
+        self.assertEqual([(hit[0], hit[1], hit[2]) for hit in hits], [("secret", "critical", "DigitalOcean token")])
 
     def test_detects_slack_webhook_url(self):
         url = fake("https://hooks.slack.com/services/", "T012AB3CDE", "/", "B012EF4GHI", "/", "a1B2c3D4e5F6g7H8i9J0k1")
