@@ -1073,6 +1073,14 @@ def paint(text, color_code, enabled):
     return f"\033[{color_code}m{text}\033[0m" if enabled else text
 
 
+def format_quiet(report):
+    counts = report["counts"]
+    return (
+        f"RepoDx: {report['score']}/100 ({report['grade']}), "
+        f"{counts['critical']} critical, {counts['warning']} warnings, {counts['info']} info"
+    )
+
+
 def format_text(report, color=False):
     counts = report["counts"]
     grade_colors = {"A": "32", "B": "32", "C": "33", "D": "33", "F": "31"}
@@ -1445,15 +1453,15 @@ def parse_args(argv=None):
         help="Install a Git pre-commit hook that blocks commits with critical findings.",
     )
     parser.add_argument(
-        "--quiet",
-        action="store_true",
-        help="Print only the score line when --format is text.",
-    )
-    parser.add_argument(
         "--fail-on",
         choices=SEVERITIES + ["never"],
         default="warning",
         help="Exit with code 1 when a finding of this severity or worse exists. Defaults to warning.",
+    )
+    parser.add_argument(
+        "--quiet",
+        action="store_true",
+        help="Print only the score line (text format). Exit codes are unchanged.",
     )
     parser.add_argument(
         "--badge",
@@ -1487,11 +1495,7 @@ def main(argv=None):
     if args.badge:
         print(badge_markdown(report))
     elif args.quiet and args.format == "text":
-        counts = report["counts"]
-        print(
-            f"RepoDx: {report['score']}/100 ({report['grade']}), "
-            f"{counts['critical']} critical, {counts['warning']} warnings, {counts['info']} info"
-        )
+        print(format_quiet(report))
     elif args.format == "json":
         print(json.dumps(dict(report, fixes=fixes) if fixes else report, indent=2))
     elif args.format == "prompt":
