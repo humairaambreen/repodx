@@ -714,6 +714,41 @@ class SecretScanTests(unittest.TestCase):
         self.assertEqual([hit[0] for hit in service_hits], ["supabase-service-role"])
         self.assertEqual(anon_hits, [])
 
+    def test_database_url_detects_percent_encoded_passwords(self):
+        for scheme in ("postgres", "postgresql", "mysql", "mariadb", "mongodb", "mongodb+srv", "redis", "rediss", "amqp", "amqps"):
+            for escape in ("%40", "%3A", "%2F", "%2f", "%25", "%24", "%D0%AD"):
+                password = fake("q7Zv", escape, "R9mK")
+
+                with self.subTest(scheme=scheme, escape=escape):
+                    hits = repodx.scan_line_for_secrets(f"{scheme}://app:{password}@db.prod.example.net/app")
+
+                    self.assertEqual(
+                        hits, [("database-url", "critical", "Database URL with password", password)]
+                    )
+
+    def test_database_url_still_ignores_percent_templates(self):
+        for password in ("%DB_TOKEN%", "%s", "%(db_token)s", "q7Zv%40%DB_TOKEN%", "your-token%40", "$DB_TOKEN%40"):
+            with self.subTest(password=password):
+                hits = repodx.scan_line_for_secrets(f"postgres://app:{password}@db.prod.example.net/app")
+
+                self.assertEqual(hits, [])
+
+    def test_reports_encoded_database_password_location_and_masks_value(self):
+        password = fake("q7Zv", "%40", "R9mK", "%25", "2w")
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            repo_path = make_repo(
+                temp_dir,
+                {"src/app.js": f"// setup\nconst db = 'postgres://app:{password}@db.prod.example.net/app';\n"},
+            )
+
+            result = findings_for(repo_path, "database-url")
+
+        self.assertEqual(len(result), 1)
+        self.assertEqual((result[0]["path"], result[0]["line"], result[0]["severity"]), ("src/app.js", 2, "critical"))
+        self.assertEqual(result[0]["detail"], repodx.mask_secret(password))
+        self.assertNotIn(password, json.dumps(result))
+
     def test_database_url_ignores_local_hosts_and_placeholders(self):
         remote = repodx.scan_line_for_secrets("postgres://app:s3cr3t-value@db.prod.example.net:5432/app")
         local = repodx.scan_line_for_secrets("postgres://app:s3cr3t-value@localhost:5432/app")
