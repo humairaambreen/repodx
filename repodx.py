@@ -366,6 +366,7 @@ SECRET_PATTERNS = [
     ("GitHub token", r"\bgh[pousr]_[A-Za-z0-9]{36,}\b"),
     ("GitHub token", r"\bgithub_pat_[A-Za-z0-9_]{60,}\b"),
     ("npm access token", r"\bnpm_[A-Za-z0-9]{36}\b"),
+    ("PyPI API token", r"\bpypi-AgEIcHlwaS5vcmc[A-Za-z0-9_\-]{50,}\b"),
     ("Stripe secret key", r"\b(?:sk|rk)_live_[A-Za-z0-9]{20,}\b"),
     ("Supabase secret key", r"\bsb_secret_[A-Za-z0-9_\-]{20,}"),
     ("Slack token", r"\bxox[abposr]-[A-Za-z0-9\-]{10,}"),
@@ -419,7 +420,7 @@ COMPILED_SECRET_PATTERNS = [(name, re.compile(pattern)) for name, pattern in SEC
 # Every pattern above contains one of these strings, so lines without them are skipped quickly.
 CANDIDATE_LITERALS = [
     "sk-", "AKIA", "ASIA", "ghp_", "gho_", "ghu_", "ghs_", "ghr_", "github_pat_", "_live_", "sb_secret_",
-    "xox", "hf_", "npm_", "gsk_", "pplx-", "r8_", "SG.", ":AA", "AIza", "eyJ", "://",
+    "xox", "hf_", "npm_", "pypi-", "gsk_", "pplx-", "r8_", "SG.", ":AA", "AIza", "eyJ", "://",
 ]
 
 
