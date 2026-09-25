@@ -387,7 +387,7 @@ FAKE_VALUE_MARKERS = [
     "example", "xxxx", "your", "dummy", "fake", "placeholder", "sample", "abcdefgh", "12345678",
     "<", "[", "*", "{{", "${", "...",
 ]
-PASSWORD_PLACEHOLDER_MARKERS = ["$", "%", "..", "password"]
+PASSWORD_PLACEHOLDER_MARKERS = ["$", "..", "password"]
 TEMPLATE_HOST_MARKERS = ["{", "<", "[", "$"]
 PUBLIC_ENV_PREFIXES = ("NEXT_PUBLIC_", "VITE_", "REACT_APP_", "PUBLIC_", "EXPO_PUBLIC_", "NUXT_PUBLIC_", "GATSBY_")
 TEST_DIRECTORY_NAMES = [
@@ -527,7 +527,10 @@ def is_placeholder_password(value):
     if lowered in PLACEHOLDER_PASSWORDS or looks_fake(value):
         return True
 
-    return any(marker in value for marker in PASSWORD_PLACEHOLDER_MARKERS)
+    # Percent-encoded bytes are valid in URL passwords, unlike template markers such as %s.
+    return any(marker in value for marker in PASSWORD_PLACEHOLDER_MARKERS) or bool(
+        re.search(r"%(?![0-9A-Fa-f]{2})", value)
+    )
 
 
 def is_test_path(relative_text):
