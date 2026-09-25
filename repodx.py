@@ -359,6 +359,7 @@ INLINE_IGNORE_MARKER = "repodx:ignore"
 # (name, regex). Only patterns with a distinctive prefix, to keep false alarms rare.
 SECRET_PATTERNS = [
     ("Anthropic API key", r"sk-ant-[A-Za-z0-9_\-]{20,}"),
+    ("OpenRouter API key", r"\bsk-or-v1-[0-9a-fA-F]{64}\b"),
     ("OpenAI API key", r"sk-(?:proj|svcacct|admin)-[A-Za-z0-9_\-]{20,}"),
     ("OpenAI API key", r"\bsk-[A-Za-z0-9]{20}T3BlbkFJ[A-Za-z0-9]{20}\b"),
     ("AWS access key", r"\b(?:AKIA|ASIA)[0-9A-Z]{16}\b"),
