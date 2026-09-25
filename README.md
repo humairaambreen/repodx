@@ -57,6 +57,7 @@ repodx --install-hook     # block commits with critical findings
 repodx --json             # machine-readable output
 repodx --format markdown  # report for PR comments or CI summaries
 repodx --badge            # print a README badge with your score
+repodx --quiet             # print only the score line
 repodx --fail-on critical # only fail on critical findings (default: warning)
 ```
 
