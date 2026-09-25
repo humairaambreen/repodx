@@ -365,6 +365,7 @@ SECRET_PATTERNS = [
     ("AWS access key", r"\b(?:AKIA|ASIA)[0-9A-Z]{16}\b"),
     ("GitHub token", r"\bgh[pousr]_[A-Za-z0-9]{36,}\b"),
     ("GitHub token", r"\bgithub_pat_[A-Za-z0-9_]{60,}\b"),
+    ("GitLab token", r"\bglpat-[A-Za-z0-9_\-]{20,}"),
     ("npm access token", r"\bnpm_[A-Za-z0-9]{36}\b"),
     ("Stripe secret key", r"\b(?:sk|rk)_live_[A-Za-z0-9]{20,}\b"),
     ("Supabase secret key", r"\bsb_secret_[A-Za-z0-9_\-]{20,}"),
@@ -418,7 +419,7 @@ TEST_FILE_PATTERN = r"(^test_.*\.py$|_test\.(py|go)$|\.(test|spec)\.[cm]?[jt]sx?
 COMPILED_SECRET_PATTERNS = [(name, re.compile(pattern)) for name, pattern in SECRET_PATTERNS]
 # Every pattern above contains one of these strings, so lines without them are skipped quickly.
 CANDIDATE_LITERALS = [
-    "sk-", "AKIA", "ASIA", "ghp_", "gho_", "ghu_", "ghs_", "ghr_", "github_pat_", "_live_", "sb_secret_",
+    "sk-", "AKIA", "ASIA", "ghp_", "gho_", "ghu_", "ghs_", "ghr_", "github_pat_", "glpat-", "_live_", "sb_secret_",
     "xox", "hf_", "npm_", "gsk_", "pplx-", "r8_", "SG.", ":AA", "AIza", "eyJ", "://",
 ]
 
