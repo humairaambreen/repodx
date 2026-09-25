@@ -572,6 +572,9 @@ class SecretScanTests(unittest.TestCase):
     def test_detects_provider_keys(self):
         keys = {
             "OpenAI API key": fake("sk-", "proj-", "A1b2C3d4E5f6G7h8I9j0K1l2"),
+            "OpenRouter API key": fake(
+                "sk-", "or-v1-", "f1e2d3c4b5a69788796a5b4c3d2e1f0af9e8d7c6b5a49382716f0e1d2c3ba4b7"
+            ),
             "Anthropic API key": fake("sk-", "ant-", "api03-", "A1b2C3d4E5f6G7h8I9j0"),
             "AWS access key": fake("AKIA", "Q7ZT4MWX9RB2KD5N"),
             "GitHub token": fake("ghp", "_", "q7ZT4mWx9Rb2Kd5Nf8Lp3Hs6Vc1Yj0GuE4tA"),
