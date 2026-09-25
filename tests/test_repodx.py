@@ -577,6 +577,11 @@ class SecretScanTests(unittest.TestCase):
             "GitHub token": fake("ghp", "_", "q7ZT4mWx9Rb2Kd5Nf8Lp3Hs6Vc1Yj0GuE4tA"),
             "Stripe secret key": fake("sk", "_live_", "A1b2C3d4E5f6G7h8I9j0K1"),
             "Supabase secret key": fake("sb", "_secret_", "A1b2C3d4E5f6G7h8I9j0K1"),
+            "Discord webhook URL": fake(
+                "https://discord.com/api/webhooks/",
+                "908172635490817263/",
+                "A1b2C3d4E5f6G7h8I9j0K1_lmn-OPQR",
+            ),
         }
 
         for name, key in keys.items():
@@ -598,6 +603,7 @@ class SecretScanTests(unittest.TestCase):
             "postgresql://postgres:..@db.<ref>.supabase.co:5432/postgres",
             "postgres://postgres:s3cr3t-value@db.{project-ref}.supabase.co/postgres",
             "psql postgres://postgres:my_password@proxy.wasm.dev:5432",
+            "https://discord.com/api/webhooks/YOUR_ID/YOUR_TOKEN",
         ]
 
         for line in lines:

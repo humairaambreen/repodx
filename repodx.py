@@ -371,6 +371,7 @@ SECRET_PATTERNS = [
     ("Groq API key", r"\bgsk_[A-Za-z0-9]{48,}\b"),
     ("SendGrid API key", r"\bSG\.[A-Za-z0-9_\-]{22}\.[A-Za-z0-9_\-]{43}\b"),
     ("Telegram bot token", r"\b\d{8,10}:AA[A-Za-z0-9_\-]{33}\b"),
+    ("Discord webhook URL", r"https://(?:ptb\.|canary\.)?discord(?:app)?\.com/api/webhooks/\d+/[A-Za-z0-9_\-]+"),
 ]
 PRIVATE_KEY_PATTERN = r"-----BEGIN (?:RSA |EC |DSA |OPENSSH |PGP |ENCRYPTED )?PRIVATE KEY-----"
 PRIVATE_KEY_MIN_BODY_CHARS = 64
