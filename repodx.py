@@ -398,8 +398,10 @@ PASSWORD_PLACEHOLDER_MARKERS = ["$", "..", "password"]
 TEMPLATE_HOST_MARKERS = ["{", "<", "[", "$"]
 PUBLIC_ENV_PREFIXES = ("NEXT_PUBLIC_", "VITE_", "REACT_APP_", "PUBLIC_", "EXPO_PUBLIC_", "NUXT_PUBLIC_", "GATSBY_")
 # Variable names that combine a public prefix with these markers leak secrets to the browser.
-PUBLIC_PREFIX_CRITICAL_MARKERS = ("SERVICE_ROLE", "SECRET", "PRIVATE")
-PUBLIC_PREFIX_WARNING_MARKERS = ("PASSWORD", "TOKEN", "OPENAI_API_KEY", "ANTHROPIC_API_KEY", "STRIPE_SECRET")
+PUBLIC_PREFIX_CRITICAL_MARKERS = ("SERVICE_ROLE", "SECRET", "PRIVATE", "OPENAI_API_KEY", "ANTHROPIC_API_KEY")
+PUBLIC_PREFIX_WARNING_MARKERS = ("PASSWORD", "TOKEN", "STRIPE_SECRET")
+# Findings in test and example folders are one level less severe, like the other secret checks.
+TEST_PATH_DOWNGRADE = {"critical": "warning", "warning": "info"}
 # Names that are public by design even when they look secret-ish.
 PUBLIC_BY_DESIGN_ENV_NAMES = frozenset({
     "NEXT_PUBLIC_SUPABASE_ANON_KEY",
@@ -707,21 +709,21 @@ def check_public_env_secrets(repo_path, files):
     for relative_text in files:
         name = relative_text.rsplit("/", 1)[-1].lower()
         text = read_text_file(repo_path / relative_text)
-        if text is None:
+        # Only public-prefixed names are reported, so files without a prefix cannot have findings.
+        if text is None or not any(prefix in text for prefix in PUBLIC_ENV_PREFIXES):
             continue
 
+        is_env_file = bool(re.fullmatch(r"\.env(\..+)?", name)) or is_env_example_name(name)
+        in_test_path = is_test_path(relative_text)
         candidates = []
-        if re.fullmatch(r"\.env(\..+)?", name) or is_env_example_name(name):
-            for line_number, line in enumerate(text.splitlines(), start=1):
-                if INLINE_IGNORE_MARKER in line:
-                    continue
+
+        for line_number, line in enumerate(text.splitlines(), start=1):
+            if INLINE_IGNORE_MARKER in line or not any(prefix in line for prefix in PUBLIC_ENV_PREFIXES):
+                continue
+            if is_env_file:
                 match = re.match(r"\s*(?:export\s+)?([A-Za-z_][A-Za-z0-9_]*)\s*=", line)
                 if match:
                     candidates.append((line_number, match.group(1)))
-
-        for line_number, line in enumerate(text.splitlines(), start=1):
-            if INLINE_IGNORE_MARKER in line:
-                continue
             for match in PUBLIC_ENV_ACCESS_PATTERN.finditer(line):
                 candidates.append((line_number, match.group(1)))
 
@@ -733,15 +735,12 @@ def check_public_env_secrets(repo_path, files):
             if key in seen:
                 continue
             seen.add(key)
+            title = f"Secret exposed through public env prefix: {var_name}"
+            if in_test_path:
+                severity = TEST_PATH_DOWNGRADE[severity]
+                title = f"{title} in a test or example file"
             findings.append(
-                make_finding(
-                    "public-env-secret",
-                    severity,
-                    f"Secret exposed through public env prefix: {var_name}",
-                    relative_text,
-                    line_number,
-                    var_name,
-                )
+                make_finding("public-env-secret", severity, title, relative_text, line_number, var_name)
             )
 
     return findings

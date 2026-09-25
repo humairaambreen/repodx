@@ -886,7 +886,7 @@ class ConfigCheckTests(unittest.TestCase):
         self.assertEqual(
             found,
             {
-                ("NEXT_PUBLIC_OPENAI_API_KEY", "warning"),
+                ("NEXT_PUBLIC_OPENAI_API_KEY", "critical"),
                 ("VITE_STRIPE_SECRET_KEY", "critical"),
                 ("EXPO_PUBLIC_AUTH_TOKEN", "warning"),
             },
@@ -911,7 +911,7 @@ class ConfigCheckTests(unittest.TestCase):
         self.assertEqual(
             found,
             {
-                ("NEXT_PUBLIC_ANTHROPIC_API_KEY", "warning"),
+                ("NEXT_PUBLIC_ANTHROPIC_API_KEY", "critical"),
                 ("VITE_SUPABASE_SERVICE_ROLE_KEY", "critical"),
             },
         )
@@ -930,6 +930,60 @@ class ConfigCheckTests(unittest.TestCase):
                 },
             )
             self.assertEqual(findings_for(repo_path, "public-env-secret"), [])
+
+    def test_public_prefixed_provider_keys_are_critical(self):
+        for name in ("NEXT_PUBLIC_OPENAI_API_KEY", "VITE_ANTHROPIC_API_KEY", "EXPO_PUBLIC_OPENAI_API_KEY"):
+            with self.subTest(name=name):
+                self.assertEqual(repodx.classify_public_prefixed_secret(name), "critical")
+
+    def test_public_prefixed_secret_in_test_path_is_downgraded(self):
+        code = (
+            "const role = process.env.NEXT_PUBLIC_SUPABASE_SERVICE_ROLE_KEY;\n"
+            "const token = process.env.NEXT_PUBLIC_AUTH_TOKEN;\n"
+        )
+        with tempfile.TemporaryDirectory() as temp_dir:
+            repo_path = make_repo(
+                temp_dir,
+                {"app.ts": code, "tests/app.test.ts": code, "examples/demo/.env": "VITE_OPENAI_API_KEY=x\n"},
+            )
+            result = findings_for(repo_path, "public-env-secret")
+
+        found = {(f["path"], f["detail"], f["severity"]) for f in result}
+        self.assertEqual(
+            found,
+            {
+                ("app.ts", "NEXT_PUBLIC_SUPABASE_SERVICE_ROLE_KEY", "critical"),
+                ("app.ts", "NEXT_PUBLIC_AUTH_TOKEN", "warning"),
+                ("tests/app.test.ts", "NEXT_PUBLIC_SUPABASE_SERVICE_ROLE_KEY", "warning"),
+                ("tests/app.test.ts", "NEXT_PUBLIC_AUTH_TOKEN", "info"),
+                ("examples/demo/.env", "VITE_OPENAI_API_KEY", "warning"),
+            },
+        )
+        test_titles = [f["title"] for f in result if f["path"] != "app.ts"]
+        self.assertTrue(all(title.endswith(" in a test or example file") for title in test_titles))
+
+    def test_public_env_check_skips_files_and_lines_without_a_prefix(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            repo_path = make_repo(
+                temp_dir,
+                {
+                    "server.ts": "const key = process.env.OPENAI_API_KEY;\n",
+                    "app.ts": (
+                        "const a = process.env.SERVICE_ROLE_SECRET;\n"
+                        "const b = process.env.NEXT_PUBLIC_API_SECRET;\n"
+                    ),
+                },
+            )
+            pattern = mock.Mock(wraps=repodx.PUBLIC_ENV_ACCESS_PATTERN)
+            with mock.patch.object(repodx, "PUBLIC_ENV_ACCESS_PATTERN", pattern):
+                result = repodx.check_public_env_secrets(repo_path, ["server.ts", "app.ts"])
+
+        self.assertEqual(
+            [(f["path"], f["line"], f["detail"]) for f in result],
+            [("app.ts", 2, "NEXT_PUBLIC_API_SECRET")],
+        )
+        scanned = [call.args[0] for call in pattern.finditer.call_args_list]
+        self.assertEqual(scanned, ["const b = process.env.NEXT_PUBLIC_API_SECRET;"])
 
     def test_classify_public_prefixed_secret_helpers(self):
         self.assertEqual(
